@@ -22,7 +22,7 @@ public:
   //Plot the supplied data points (either provided data or points sampled from function) as a histogram using NBins
   void plotData(std::vector<double> &points, int NBins, bool isdata=true); //NB! use isdata flag to pick between data and sampled distributions
   virtual void printInfo(); //Dump parameter info about the current function (Overridable)
-  virtual double callFunction(double x); //Call the function with value x (Overridable)
+  virtual double callFunction(double x, double mu, double sigma); //Call the function with value x (Overridable)
 
   //Protected members can be accessed by child classes but not users
 protected:
@@ -39,7 +39,7 @@ protected:
   bool m_plotfunction = false; //Flag to determine whether to plot function
   bool m_plotdatapoints = false; //Flag to determine whether to plot input data
   bool m_plotsamplepoints = false; //Flag to determine whether to plot sampled data 
-  double integrate(int Ndiv);
+  double integrate( int Ndiv);
   std::vector< std::pair<double, double> > makeHist(std::vector<double> &points, int Nbins); //Helper function to turn data points into histogram with Nbins
   void checkPath(std::string outstring); //Helper function to ensure data and png paths are correct
   void generatePlot(Gnuplot &gp); 

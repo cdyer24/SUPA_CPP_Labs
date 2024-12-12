@@ -12,7 +12,7 @@ using std::filesystem::path;
 FiniteFunction::FiniteFunction(){
   m_RMin = -5.0;
   m_RMax = 5.0;
-  this->checkPath("DefaultFunction");
+  //this->checkPath(outfile);
   m_Integral = NULL;
 }
 
@@ -54,16 +54,38 @@ double FiniteFunction::rangeMax() {return m_RMax;};
 ###################
 */ 
 double FiniteFunction::invxsquared(double x) {return 1/(1+x*x);};
-double FiniteFunction::callFunction(double x) {return this->invxsquared(x);}; //(overridable)
+double FiniteFunction::callFunction(double x, double mu, double sigma) {return this->invxsquared(x);}; //(overridable)
 
 /*
 ###################
 Integration by hand (output needed to normalise function when plotting)
 ###################
 */ 
+
+double mu = 0.999486 ;
+double sigma = 1.50155;
+double x0 = 0;
+double CL_gamma = 1;
 double FiniteFunction::integrate(int Ndiv){ //private
   //ToDo write an integrator
-  return -99;  
+  //Assuming equi-distant steps and using integration by hand
+  // sum of step*y 
+  //First get array of x
+  double step = (m_RMax - m_RMin)/(double)Ndiv;
+  double x = m_RMin;
+  double intbyhand = 0;
+  std::vector <double> x_array(Ndiv);
+  std::vector <double> y_array(Ndiv);
+
+  for (int i = 0; i < Ndiv;i++){
+    x_array[i] = x;
+    y_array[i] = callFunction(x, mu,sigma);
+    intbyhand += step * y_array[i];
+    x += step;
+  }
+  m_Integral = intbyhand;
+  std::cout << "m_Integral: " << m_Integral << std::endl;
+  return  m_Integral;  
 }
 double FiniteFunction::integral(int Ndiv) { //public
   if (Ndiv <= 0){
@@ -108,7 +130,10 @@ void FiniteFunction::printInfo(){
 //Hack because gnuplot-io can't read in custom functions, just scan over function and connect points with a line... 
 void FiniteFunction::plotFunction(){
   m_function_scan = this->scanFunction(10000);
+
   m_plotfunction = true;
+
+
 }
 
 //Transform data points into a format gnuplot can use (histogram) and set flag to enable drawing of data to output plot
@@ -137,18 +162,21 @@ void FiniteFunction::plotData(std::vector<double> &points, int Nbins, bool isdat
 //Scan over range of function using range/Nscan steps (just a hack so we can plot the function)
 std::vector< std::pair<double,double> > FiniteFunction::scanFunction(int Nscan){
   std::vector< std::pair<double,double> > function_scan;
+
   double step = (m_RMax - m_RMin)/(double)Nscan;
   double x = m_RMin;
   //We use the integral to normalise the function points
   if (m_Integral == NULL) {
     std::cout << "Integral not set, doing it now" << std::endl;
-    this->integral(Nscan);
+    m_Integral = this->integral(Nscan);
     std::cout << "integral: " << m_Integral << ", calculated using " << Nscan << " divisions" << std::endl;
   }
-  //For each scan point push back the x and y values 
+  //For each scan point push back the x and y values
   for (int i = 0; i < Nscan; i++){
-    function_scan.push_back( std::make_pair(x,this->callFunction(x)/m_Integral));
-    x += step;
+     double y = this->callFunction(x, mu, sigma); 
+     function_scan.push_back( std::make_pair(x,y/m_Integral));
+     //std::cout << "x: " << x << ", y: " << y/m_Integral << std::endl; 
+     x += step;
   }
   return function_scan;
 }
@@ -180,9 +208,14 @@ std::vector< std::pair<double,double> > FiniteFunction::makeHist(std::vector<dou
 //Function which handles generating the gnuplot output, called in destructor
 //If an m_plot... flag is set, the we must have filled the related data vector
 //SUPACPP note: They syntax of the plotting code is not part of the course
+
+
+
 void FiniteFunction::generatePlot(Gnuplot &gp){
 
   if (m_plotfunction==true && m_plotdatapoints==true && m_plotsamplepoints==true){
+    std::cout << "Plot function: " << m_plotfunction << ", Plot data points: " << m_plotdatapoints << std::endl;
+
     gp << "set terminal pngcairo\n";
     gp << "set output 'Outputs/png/"<<m_FunctionName<<".png'\n"; 
     gp << "set xrange ["<<m_RMin<<":"<<m_RMax<<"]\n";
@@ -193,6 +226,8 @@ void FiniteFunction::generatePlot(Gnuplot &gp){
     gp.send1d(m_data);
   }
   else if (m_plotfunction==true && m_plotdatapoints==true){
+    std::cout << "Plot function: " << m_plotfunction << ", Plot data points: " << m_plotdatapoints << std::endl;
+
     gp << "set terminal pngcairo\n";
     gp << "set output 'Outputs/png/"<<m_FunctionName<<".png'\n"; 
     gp << "set xrange ["<<m_RMin<<":"<<m_RMax<<"]\n";
