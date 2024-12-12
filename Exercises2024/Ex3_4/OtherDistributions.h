@@ -1,3 +1,4 @@
+//Courtney Dyer 12/12/24
 #include <string>
 #include <vector>
 #include "gnuplot-iostream.h"
